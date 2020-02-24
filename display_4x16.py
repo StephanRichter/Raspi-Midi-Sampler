@@ -1,8 +1,6 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import time
 import RPi.GPIO as GPIO
-
-VERSION = "0.1"
 
 # Zuordnung der GPIO Pins (ggf. anpassen)
 LCD_RS = 14
@@ -11,6 +9,7 @@ LCD_DATA4 = 18
 LCD_DATA5 = 23
 LCD_DATA6 = 24
 LCD_DATA7 = 25
+BUTTON = 8
 
 PAUSE = 0.0005
 
@@ -46,6 +45,11 @@ UNDERLINE = L
 # enable/disable cursor
 ENABLED = H
 DISABLED = L
+
+# codes for special characters
+AE = 225
+OE = 239
+UE = 245
 
 line1 = ""
 line2 = ""
@@ -83,9 +87,29 @@ def gpio_init():
     GPIO.setup(LCD_DATA6, GPIO.OUT)
     GPIO.setup(LCD_DATA7, GPIO.OUT)
     GPIO.output(LCD_E,L);
+    GPIO.setup(BUTTON,GPIO.IN,pull_up_down=GPIO.PUD_DOWN)
 
 def clear():
     push_ctrl(H,L,L,L,L,L,L,L)
+
+def add_enter_symbol():
+    push_ctrl(L,L,L,L,L,L,H,L) # CG-Adresse 0 setzen
+    push_text(H,L,L,L,L,L,L,L)
+    push_ctrl(H,L,L,L,L,L,H,L) # CG-Adresse 1 setzen
+    push_text(H,L,L,L,L,L,L,L)
+    push_ctrl(L,H,L,L,L,L,H,L) # CG-Adresse 2 setzen
+    push_text(H,L,L,L,L,L,L,L)
+    push_ctrl(H,H,L,L,L,L,H,L) # CG-Adresse 3 setzen
+    push_text(H,L,H,L,L,L,L,L)
+    push_ctrl(L,L,H,L,L,L,H,L) # CG-Adresse 4 setzen
+    push_text(H,L,L,H,L,L,L,L)
+    push_ctrl(H,L,H,L,L,L,H,L) # CG-Adresse 5 setzen
+    push_text(H,H,H,H,H,L,L,L)
+    push_ctrl(L,H,H,L,L,L,H,L) # CG-Adresse 6 setzen
+    push_text(L,L,L,H,L,L,L,L)
+    push_ctrl(H,H,H,L,L,L,H,L) # CG-Adresse 7 setzen
+    push_text(L,L,H,L,L,L,L,L)
+
     
 def lcd_init(lines,dots_per_line,bits,direction,shift,cursor_type,cursor_on):
     time.sleep(0.015)
@@ -99,16 +123,17 @@ def lcd_init(lines,dots_per_line,bits,direction,shift,cursor_type,cursor_on):
     time.sleep(0.100)
     push_ctrl(cursor_type,cursor_on,H,H,L,L,L,L) # Display mode
     time.sleep(0.100)
+    add_enter_symbol()
     clear()
     
 def letter(char):    
     byte = ord(char)
     if char=='ä':
-        byte=225
+        byte=AE
     if char=='ö':
-        byte=239
+        byte=OE
     if char=='ü':
-        byte=245
+        byte=UE
     push_text(byte & 0x01 > 0,byte & 0x02 > 0,byte & 0x04 > 0,byte & 0x08 > 0,byte & 0x10 > 0,byte & 0x20 > 0,byte & 0x40 > 0,byte & 0x80 > 0)
     
 def text(txt):
@@ -121,37 +146,31 @@ def move0():
 def move(direction,shift,num):
     for i in range(num):
         push_ctrl(L,L,direction,shift,H,L,L,L)
+
+def goto(line,column):
+    if (line > 4) or (line < 1) or (column < 1) or (column > 16):
+        return
+    move0()
+    if line == 2:
+        move(L2R,L,40)
+    if line == 3:
+        move(L2R,L,16)
+    if line == 4:
+        move(L2R,L,56)
+    if (column>1):
+        move(L2R,L,column-1)
+    
         
 def line(num,txt):
     global line1,line2,line3,line4
     txt = txt.ljust(16," ")[:16]
-    print("<"+txt+">");
-    move0()
-    if (num < 1) or (num > 4):
-        return
-    if num == 2:
-        move(L2R,L,40)
-    if num == 3:
-        move(L2R,L,16)
-    if num == 4:
-        move(L2R,L,56)
+    goto(num,1)
     text(txt)
-    
-def welcome():
-    line(2,"   Willkommen!");
-    time.sleep(2)
-    line(1,"   Wilkommen!");
-    line(2,"");
-    line(3,"Raspberry Midi")
-    line(4,"Sampler v. "+VERSION)
-    time.sleep(2)
-    clear()
-    line(1,"Knopf drücken um")
-    line(2,"zu Programmieren")
     
 if __name__ == '__main__':
     gpio_init();
     lcd_init(TWO_LINE,EIGHT_DOTS,FOUR_BIT_INTER,L2R,SHIFT,UNDERLINE,DISABLED)
-    welcome()
-    
-    
+    line(1,"If you can see")
+    line(2,"this, your setup")
+    line(3,"seems to be ok!")
+    line(4,"      -- Stephan");
