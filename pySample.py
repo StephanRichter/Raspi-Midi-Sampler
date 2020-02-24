@@ -3,7 +3,7 @@ from display_4x16 import *
 from midi_tools import *
 import glob,os,signal
 
-VERSION = "0.7"
+VERSION = "0.8"
 profile = None
 
  
@@ -29,7 +29,6 @@ def assign(wave):
     line(3,"zugewiesen zu:")
     line(4,"Note "+str(note)+" / Ch "+str(channel))
     time.sleep(3)
-    
     
 def create_profile():
     clear()
@@ -80,30 +79,12 @@ def enter_program():
     line(3,"2. Note wählt")
     line(4,"Start mit Note.")
     scroll,channel = read_note()
-    line(1,"  Profil laden")
-    line(2,"  Neues Profil")
-    line(3,"  Profil ändern")
-    line(4,"  abbrechen")
-    
-    selection = 1
-    goto(selection,1)
-    letter('~')
-    note,channel = read_note()
-    while note == scroll:
-        goto(selection,1)
-        letter(' ')
-        selection = selection+1
-        if selection>4:
-            selection=1
-        goto(selection,1)
-        letter('~')
-        note,channel = read_note()
-    
-    if selection == 2:
-        create_profile()
-    if selection == 1:
+    selection = select_from(['Profil laden','Neues Profil','Profil ändern','Abbrechen'])
+    if selection == 'Profil laden':
         select_profile()
-    if selection == 3:
+    if selection == 'Neues Profil':
+        create_profile()
+    if selection == 'Profil ändern':
         wav = select_wave()
         if wav is not None:
             assign(wav)
