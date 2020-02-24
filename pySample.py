@@ -1,25 +1,12 @@
 #!/usr/bin/python3
 from display_4x16 import *
 from midi_tools import *
-import glob,os
+import glob,os,signal
 
-VERSION = "0.6"
-
+VERSION = "0.7"
 profile = None
 
-def welcome():
-    clear()
-    line(2,"   Willkommen!");
-    time.sleep(2)
-    line(1,"   Wilkommen!");
-    line(2,"");
-    line(3," Raspberry Midi")
-    line(4," Sampler v. "+VERSION)
-    time.sleep(2)
-    clear()
-    line(1,"Knopf drücken um")
-    line(2,"zu Programmieren")
-    
+ 
 def ready():
     global profile
     #flush()
@@ -184,7 +171,20 @@ def select_wave():
         return None
     
     waves.sort()
-    return select_from(waves)    
+    return select_from(waves)
+
+def welcome():
+    clear()
+    line(2,"   Willkommen!");
+    time.sleep(2)
+    line(1,"   Wilkommen!");
+    line(2,"");
+    line(3," Raspberry Midi")
+    line(4," Sampler v. "+VERSION)
+    time.sleep(2)
+    clear()
+    line(1,"Knopf drücken um")
+    line(2,"zu Programmieren")
     
 def write_profile(name):
     file = open(name,'a')
@@ -193,12 +193,39 @@ def write_profile(name):
     clear()
     line(1,name)
     line(2,'erzeugt.')
-        
+    
+def reset_usb():
+    files = glob.glob("/sys/bus/usb/devices/*/idVendor")
+    midi = None
+    for filename in files:
+        file = open(filename,'r')
+        vendor = file.readline().strip()
+        file.close()
+        if vendor == '0a92':
+            midi = filename[:-8]+'authorized'
+            break
+    print(midi)
+    os.system("sudo bash -c 'echo 0 > "+midi+"'")
+    time.sleep(2)
+    files = glob.glob("/sys/bus/usb/devices/*/idVendor")
+    midi = None
+    for filename in files:
+        file = open(filename,'r')
+        vendor = file.readline().strip()
+        file.close()
+        if vendor == '0a92':
+            midi = filename[:-8]+'authorized'
+            break
+    print(midi)
+    os.system("sudo bash -c 'echo 1 > "+midi+"'")
+    time.sleep(1)
+    
 if __name__ == '__main__':
     os.chdir('profiles')
     gpio_init();    
     lcd_init(TWO_LINE,EIGHT_DOTS,FOUR_BIT_INTER,L2R,SHIFT,UNDERLINE,DISABLED)
     welcome()
+    reset_usb()    
     midi = midi_init()
     ready()
     while True:        

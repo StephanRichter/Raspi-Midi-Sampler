@@ -33,4 +33,11 @@ def read_note():
         note = msg.note
         chan = msg.channel
     return (note, chan)
+
+if __name__ == '__main__':
+    midi_init()
+    while True:
+        print(read_note())
+    
+
     
