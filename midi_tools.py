@@ -31,5 +31,6 @@ def read_note():
         if msg.velocity == 0:
             continue
         note = msg.note
-    return note
+        chan = msg.channel
+    return (note, chan)
     
