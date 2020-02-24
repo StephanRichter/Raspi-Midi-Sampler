@@ -11,7 +11,7 @@ LCD_DATA6 = 24
 LCD_DATA7 = 25
 BUTTON = 8
 
-PAUSE = 0.0005
+PAUSE = 0.00045
 
 L = GPIO.LOW
 H = GPIO.HIGH
@@ -58,9 +58,9 @@ line4 = ""
 
 def push4(rs,d4,d5,d6,d7):
     GPIO.output(LCD_RS,rs);
-    time.sleep(PAUSE)
+    #time.sleep(PAUSE)
     GPIO.output(LCD_E,H)
-    time.sleep(PAUSE)
+    #time.sleep(PAUSE)
     GPIO.output(LCD_DATA4,d4)
     GPIO.output(LCD_DATA5,d5)
     GPIO.output(LCD_DATA6,d6)

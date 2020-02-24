@@ -1,8 +1,11 @@
 #!/usr/bin/python3
 from display_4x16 import *
 from midi_tools import *
+import glob
 
-VERSION = "0.4"
+VERSION = "0.5"
+
+profile = None
 
 def welcome():
     clear()
@@ -55,10 +58,10 @@ def create_profile():
             letter(chr(c))
             note = read_note()
         if (c == 0):
-            write_profile(name)
+            write_profile(name+".prf")
+            load_profile(name+".prf")
         else:
             name = name + chr(c)
-            print(name)
             c = 97 # start with a
             line(2,name+chr(c));
             note = read_note()   
@@ -91,10 +94,64 @@ def enter_program():
     
     if selection == 2:
         create_profile()
+    if selection == 1:
+        select_profile()
+        
+def load_profile(name):
+    global profile
+    profile = name
+    clear()
+    line(1,"Profil geladen:")
+    line(2,profile)
+        
+def select_profile():
+    profiles = glob.glob("*.prf")
+    profiles.sort()
+    print(profiles)
+    count = len(profiles)
+    print(count)
+    selection = 1
+    offset = 0
+    clear()
+    for i in range(4):
+        if (i+offset<count):
+            line(i+1," "+profiles[i+offset])
+    scroll = read_note()
+    goto(selection,1)
+    letter('~')
+    note = read_note()
+    while note == scroll:
+        goto(selection,1)
+        letter(' ')
+        selection = selection +1
+        if selection > count:
+            selection = 1
+            offset = 0
+            for i in range(4):
+                if (i+offset<count):
+                    line(i+1," "+profiles[i+offset])
+        if selection > offset+4:
+            offset = offset+1
+            for i in range(4):
+                if (i+offset<count):
+                    line(i+1," "+profiles[i+offset])
+        goto(selection-offset,1)
+        letter('~')
+        note = read_note()
+    name = profiles[selection-1]
+    load_profile(name)
+
+    
     
 def write_profile(name):
+    file = open(name,'a')
+    file.write('test')
+    file.close()
     clear()
     line(1,name)
+    line(2,'erzeugt.')
+    
+
     
 if __name__ == '__main__':    
     gpio_init();    
