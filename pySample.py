@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 from display_4x16 import *
 from midi_tools import *
-import os
+import os,_thread
 
-VERSION = "0.10"
+VERSION = "0.11"
 profile = None
 ARR = chr(127)
 ENTER = chr(0)
@@ -32,7 +32,7 @@ def assign(wave):
         profile['notes'][channel][note]=wave            
     else:
         profile['notes'][channel]={note:wave}
-        
+    save_profile()
     time.sleep(2)
     clear()
     line(1,profile['name'])
@@ -91,12 +91,15 @@ def load_profile(name):
     line(1,'Profil geladen:')
     line(2,profile['name'])
     
-def play_wav(wave):
-    line(2,wave)
-    line(3,'wird abgespielt')
+def playing(filename):
+    line(2,filename)
+    line(3,'wird gespielt')
     line(4,' ')
-    time.sleep(2)
-    flush()
+    
+def play_wav(filename):
+    _thread.start_new_thread(playing,(filename,))
+    os.system('aplay '+filename)
+    clear()
     
 def read_name(title):    
     selection = select_from(title,['abcdefghijklmn','opqrstuvwxyzäö','ü-_0123456789'])
@@ -122,7 +125,17 @@ def read_name(title):
             name = name+selection
             title = name
             selection = select_from(title,['abcdefghijklmn','opqrstuvwxyzäö','ü-_0123456789'])
-
+def save_profile():
+    global profile    
+    if profile is None:
+        return
+    file = open(profile['name'],'w')
+    if 'notes' in profile:
+        samples = profile['notes']
+        for channel,notes in samples.items():
+            for note,wave in notes.items():
+                file.write(str(channel)+' '+str(note)+' '+wave+"\n")
+    file.close()
 
 def select_from(title,names):
     count = len(names)
@@ -187,7 +200,7 @@ def select_wave():
 
 def welcome():
     clear()
-    line(1,"   Wilkommen!");
+    line(1,"   Willkommen!");
     line(2,"");
     line(3," Raspberry Midi")
     line(4,"Sampler v. "+VERSION)
