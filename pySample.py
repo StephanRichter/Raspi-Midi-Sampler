@@ -3,15 +3,16 @@ from display_4x16 import *
 from midi_tools import *
 import os
 
-VERSION = "0.8"
+VERSION = "0.10"
 profile = None
-
+ARR = chr(127)
+ENTER = chr(0)
  
 def ready():
     global profile
     if profile is not None:
-        line(1,"Profil geladen:")
-        line(2,profile)
+        line(1,profile['name'])
+    flush()
     line(4,"    Bereit.");
     
 def assign(wave):
@@ -23,54 +24,24 @@ def assign(wave):
     flush()
     note,channel = read_note()
     clear()
-    line(1,profile)
+    line(1,profile['name'])
     line(2,wave)
     line(3,"zugewiesen zu:")
     line(4,"Note "+str(note)+" / Ch "+str(channel))
-    time.sleep(3)   
+    if channel in profile['notes']:
+        profile['notes'][channel][note]=wave            
+    else:
+        profile['notes'][channel]={note:wave}
+        
+    time.sleep(2)
+    clear()
+    line(1,profile['name'])
  
 def create_profile():
-    read_name("Name für Profil:")
-    clear()
-    line(1,"Name für Profil:")
-    line(2,"[leer]");
-    line(3,"1. Note blättert")
-    line(4,"2. Note wählt")
-    scroll,channel = read_note()
-    name = ""
-    c = 97 # start with a
-    line(2,chr(c));
-    note,channel = read_note()
-    while c != 0:
-        while note == scroll:
-            c = c+1;
-            if c == 123: # go from z to Enter
-                c = 0
-            if c == 1: # go from Enter to number
-                c = 48
-            if c == 58: # go from nubers to underscore
-                c = 95
-            if c == 96: # go from underscore to dash
-                c = 45
-            if c == 46: # go from dash to ä
-                c = AE
-            if (c-1) == AE:
-                c = OE
-            if (c-1) == OE:
-                c = UE
-            if (c-1) == UE: # go from ä to dash
-                c = 97
-            goto(2,len(name)+1)
-            letter(chr(c))
-            note,channel = read_note()
-        if (c == 0):
-            write_profile(name+".prf")
-            load_profile(name+".prf")
-        else:
-            name = name + chr(c)
-            c = 97 # start with a
-            line(2,name+chr(c));
-            note,channel = read_note()
+    name = read_name("Name für Profil:")
+    if name is not None:
+        write_profile(name+".prf")
+        load_profile(name+".prf")
             
 def delete_profile():
     global profile
@@ -79,10 +50,15 @@ def delete_profile():
         load_profile(name)
     if profile is None: # es wurde kein Profil geladen
         return
-    selection = select_from(profile+"...",['...behalten','...behalten','löschen'])
+    selection = select_from(profile['name']+"...",['...behalten','...behalten','löschen'])
+    clear()
+    line(1,profile['name'])
     if selection == 'löschen':
-        os.remove(profile)
+        os.remove(profile['name'])        
+        line(2,'gelöscht!')
         profile = None
+    else:
+        line(2,'nicht gelöscht.')        
     
 def enter_program():
     clear()
@@ -103,15 +79,50 @@ def enter_program():
     if selection == 'Profil ändern':
         wav = select_wave()
         if wav is not None:
-            assign(wav)
-    clear()
+            assign(wav)    
         
 def load_profile(name):
     global profile
     if name is None:
         profile = None
         return
-    profile = name
+    profile = {'name':name,'notes':{}}
+    clear()
+    line(1,'Profil geladen:')
+    line(2,profile['name'])
+    
+def play_wav(wave):
+    line(2,wave)
+    line(3,'wird abgespielt')
+    line(4,' ')
+    time.sleep(2)
+    flush()
+    
+def read_name(title):    
+    selection = select_from(title,['abcdefghijklmn','opqrstuvwxyzäö','ü-_0123456789'])
+    name = ""
+    while True:
+        l = len(selection)
+        if l>1:
+            l=l//2
+            if len(name)>0:                
+                selection = select_from(title,[selection[0:l],selection[l:],ARR+'/'+ENTER])
+            else:
+                selection = select_from(title,[selection[0:l],selection[l:]])
+                
+            if selection == ARR+'/'+ENTER:
+                selection = select_from(title,['übernehmen','rückgängig'])
+            if selection == 'übernehmen':
+                return name
+            if selection == 'rückgängig':
+                name = name[:-1]
+                title = name
+                selection = select_from(title,['abcdefghijklmn','opqrstuvwxyzäö','ü-_0123456789'])
+        else:
+            name = name+selection
+            title = name
+            selection = select_from(title,['abcdefghijklmn','opqrstuvwxyzäö','ü-_0123456789'])
+
 
 def select_from(title,names):
     count = len(names)
@@ -149,16 +160,19 @@ def select_from(title,names):
 def select_profile():
     profiles = glob.glob("*.prf")
     if (len(profiles) == 0):
+        clear()
+        line(1,'Keine Profile')
+        line(2,'gefunden!')
         return
     profiles.sort()
-    return select_from('Profil wählen:',profiles)
-    
+    return select_from('Profil wählen:',profiles)    
     
 def select_wave():
     global profile
     clear()
     if profile is None:
-        select_profile()
+        name = select_profile()
+        load_profile(name)
 
     waves = glob.glob("*.wav")
     if (len(waves) == 0):
@@ -173,12 +187,10 @@ def select_wave():
 
 def welcome():
     clear()
-    line(2,"   Willkommen!");
-    time.sleep(2)
     line(1,"   Wilkommen!");
     line(2,"");
     line(3," Raspberry Midi")
-    line(4," Sampler v. "+VERSION)
+    line(4,"Sampler v. "+VERSION)
     time.sleep(2)
     clear()
     line(1,"Knopf drücken um")
@@ -192,8 +204,6 @@ def write_profile(name):
     clear()
     line(1,name)
     line(2,'erzeugt.')
-    
-
     
 if __name__ == '__main__':
     os.chdir('profiles')
@@ -210,4 +220,10 @@ if __name__ == '__main__':
         msg = midi.poll()
         if (msg is not None):
             if msg.type == 'note_on':
-                print(msg.note)
+                channel = msg.channel
+                note = msg.note
+                print("Note "+str(channel)+'/'+str(note)+" gespielt")
+                if (profile is not None) and (channel in profile['notes']) and (note in profile['notes'][channel]):
+                    play_wav(profile['notes'][channel][note])
+                    clear()
+                    ready()

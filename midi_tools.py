@@ -51,7 +51,7 @@ def reset_usb(vendor):
             midi = filename[:-8]+'authorized'
             break
     os.system("sudo bash -c 'echo 0 > "+midi+"'")
-    time.sleep(2)
+    time.sleep(1)
     files = glob.glob("/sys/bus/usb/devices/*/idVendor")
     midi = None
     for filename in files:
@@ -62,7 +62,7 @@ def reset_usb(vendor):
             midi = filename[:-8]+'authorized'
             break
     os.system("sudo bash -c 'echo 1 > "+midi+"'")
-    time.sleep(1)
+    time.sleep(0.1)
 
 if __name__ == '__main__':
     midi_init()
