@@ -4,7 +4,7 @@ from midi_tools import *
 import os,_thread
 from shutil import copy
 
-VERSION = "0.14"
+VERSION = "0.1"
 profile = None
 ARR = chr(127)
 ENTER = chr(0)
@@ -268,21 +268,46 @@ def select_wave():
     return select_from('WAV-Datei wählen:',waves)
              
 def unmount():
-    profile_dir = os.getcwd()
-    dir='/media/pi';
-    os.chdir(dir)
-    entries = glob.glob('*')
-    entries.remove('berryboot')
-    selection = select_from('Stick wählen:',entries)
-    dir = dir+'/'+selection
+    list = open('/proc/mounts','r')
+    devices=[] 
+    for line in list:
+        if 'usb' in line:
+            parts = line.split()
+            for part in parts:
+                if 'media' in part:
+                    devices.append(part)
+    print(devices)
+
+    if not devices:
+        clear()
+        set_line(1,'Keine Sticks')
+        set_line(2,'gefunden')
+        time.sleep(1)
+        return
+    device = select_from('Stick wählen:',devices)
+    if device is None:
+        return
+
     os.system('sync')
-    os.system('umount '+dir)
-    os.chdir(profile_dir)    
-    set_line(1,selection)
-    set_line(2,'ausgehängt.')
-    set_line(3,'Stick kann nun')
-    set_line(4,'entfernt werden.')
+    os.system('sudo umount '+device)
+
+    mounted = False
+    for line in list:
+        if device in line:
+            mounted = True
+
+    if mounted:
+        set_line(1,device)
+        set_line(2,'konnte nicht')
+        set_line(3,'ausgehängt')
+        set_line(4,'werden!')
+    else:
+        set_line(1,device)
+        set_line(2,'ausgehängt.')
+        set_line(3,'Stick kann nun')
+        set_line(4,'entfernt werden.')
     time.sleep(2)    
+    clear()
 
 def welcome():
     clear()
@@ -302,6 +327,7 @@ def write_profile(name):
     set_line(2,'erzeugt.')
     
 if __name__ == '__main__':
+    print('Raspberry Midi Sampler starting.')
     os.chdir('profiles')
     gpio_init();    
     lcd_init(TWO_LINE,EIGHT_DOTS,FOUR_BIT_INTER,L2R,SHIFT,UNDERLINE,DISABLED)
