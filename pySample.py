@@ -2,6 +2,7 @@
 from display_4x16 import *
 from midi_tools import *
 import os,_thread
+from shutil import copy
 
 VERSION = "0.11"
 profile = None
@@ -67,7 +68,7 @@ def enter_program():
     set_line(3,"2. Note wählt")
     set_line(4,"Start mit Note.")
     scroll,channel = read_note()
-    selection = select_from('Programmiermodus',['Profil laden','Neues Profil','Profil ändern','Profil löschen','Wave importieren','Abbrechen'])
+    selection = select_from('Programmiermodus',['Profil laden','Profil ändern','Neues Profil','Profil löschen','Wave-Import','Abbrechen'])
     if selection == 'Profil laden':
         name = select_profile()
         if name is not None:
@@ -80,7 +81,7 @@ def enter_program():
         wav = select_wave()
         if wav is not None:
             assign(wav)
-    if selection == 'Wave importieren':
+    if selection == 'Wave-Import':
         import_wave()
 def load_profile(name):
     global profile
@@ -210,6 +211,35 @@ def select_wave():
     
     waves.sort()
     return select_from('WAV-Datei wählen:',waves)
+
+def filter_waves(entries):
+    result=[]
+    for entry in entries:
+        if os.path.isdir(entry) or (entry[-4:]=='.wav'):
+            result.append(entry)
+    return result
+            
+def import_wave():
+    profile_dir = os.getcwd()
+    print('currently in '+profile_dir)
+    os.chdir('/media/pi')
+    selection = None;
+    while True:
+        entries = glob.glob('*')
+        entries = filter_waves(entries)
+        selection = select_from('Quelle wählen:',entries)
+        if selection[-4:]=='.wav':
+            break
+        os.chdir(selection)
+    source_dir = os.getcwd()
+    os.chdir(profile_dir)
+    clear()
+    set_line(1,selection)
+    set_line(2,'wird kopiert...')
+    copy(source_dir+'/'+selection,profile_dir)
+    set_line(2,'importiert.')
+    time.sleep(2)
+    
 
 def welcome():
     clear()
