@@ -4,7 +4,7 @@ from midi_tools import *
 import os,_thread
 from shutil import copy
 
-VERSION = "0.13"
+VERSION = "0.14"
 profile = None
 ARR = chr(127)
 ENTER = chr(0)
@@ -123,9 +123,7 @@ def load_profile(name):
     file = open(name,'r')
     for line in file:
         line=line.strip()
-        print('>'+line+'<')
         if not line:
-            print('skipping empty line')
             continue
         data = line.split(" ",2)        
         wave = data.pop()
@@ -320,7 +318,6 @@ if __name__ == '__main__':
             if msg.type == 'note_on':
                 channel = msg.channel
                 note = msg.note
-                print("Note "+str(channel)+'/'+str(note)+" gespielt")
                 if (profile is not None) and (channel in profile['notes']) and (note in profile['notes'][channel]):
                     play_wav(profile['notes'][channel][note])
                     clear()
