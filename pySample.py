@@ -276,8 +276,6 @@ def unmount():
             for part in parts:
                 if 'media' in part:
                     devices.append(part)
-    print(devices)
-
     if not devices:
         clear()
         set_line(1,'Keine Sticks')
