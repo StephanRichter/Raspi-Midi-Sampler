@@ -95,7 +95,7 @@ def filter_waves(entries):
     
 def import_wave():
     profile_dir = os.getcwd()
-    os.chdir('/media/pi')
+    os.chdir('/media')
     selection = None;
     while True:
         entries = glob.glob('*')
