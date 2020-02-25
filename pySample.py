@@ -4,18 +4,11 @@ from midi_tools import *
 import os,_thread
 from shutil import copy
 
-VERSION = "0.11"
+VERSION = "0.13"
 profile = None
 ARR = chr(127)
 ENTER = chr(0)
  
-def ready():
-    global profile
-    if profile is not None:
-        set_line(1,profile['name'])
-    flush()
-    set_line(4,"    Bereit.");
-    
 def assign(wave):
     global profile
     clear()    
@@ -41,21 +34,28 @@ def assign(wave):
 def create_profile():
     name = read_name("Name für Profil:")
     if name is not None:
-        write_profile(name+".prf")
-        load_profile(name+".prf")
+        name = name+'.prf'
+        file = open(name,'a')
+        file.close()
+        clear()
+        set_line(1,name)
+        set_line(2,'erzeugt.')
+        load_profile(name)
             
 def delete_profile():
     global profile
+    name = None
     if profile is None:
         name = select_profile()
-        load_profile(name)
-    if profile is None: # es wurde kein Profil geladen
+    else:
+        name = profile['name']
+    if name is None: # es wurde kein Profil geladen
         return
-    selection = select_from(profile['name']+"...",['...behalten','...behalten','löschen'])
+    selection = select_from(name+"...",['...behalten','...behalten','löschen'])
     clear()
-    set_line(1,profile['name'])
+    set_line(1,name)
     if selection == 'löschen':
-        os.remove(profile['name'])        
+        os.remove(name)        
         set_line(2,'gelöscht!')
         profile = None
     else:
@@ -68,32 +68,67 @@ def enter_program():
     set_line(3,"2. Note wählt")
     set_line(4,"Start mit Note.")
     scroll,channel = read_note()
-    selection = select_from('Programmiermodus',['Profil laden','Profil ändern','Neues Profil','Profil löschen','Wave-Import','Abbrechen'])
+    selection = select_from('Programmiermodus',['Profil laden','Profil ändern','Neues Profil','Verwaltung','Abbrechen'])
     if selection == 'Profil laden':
         name = select_profile()
         if name is not None:
             load_profile(name)
-    if selection == 'Profil löschen':
-        delete_profile()
-    if selection == 'Neues Profil':
-        create_profile()
+        return
     if selection == 'Profil ändern':
         wav = select_wave()
         if wav is not None:
             assign(wav)
-    if selection == 'Wave-Import':
-        import_wave()
+        return
+    if selection == 'Neues Profil':
+        create_profile()
+        return
+    if selection == 'Verwaltung':
+        management()
+        return
+    
+def filter_waves(entries):
+    result=[]
+    for entry in entries:
+        if os.path.isdir(entry) or (entry[-4:]=='.wav'):
+            result.append(entry)
+    return result
+    
+def import_wave():
+    profile_dir = os.getcwd()
+    os.chdir('/media/pi')
+    selection = None;
+    while True:
+        entries = glob.glob('*')
+        entries = filter_waves(entries)
+        selection = select_from('Quelle wählen:',entries)
+        if selection[-4:]=='.wav':
+            break
+        os.chdir(selection)
+    source_dir = os.getcwd()
+    os.chdir(profile_dir)
+    clear()
+    set_line(1,selection)
+    set_line(2,'wird kopiert...')
+    copy(source_dir+'/'+selection,profile_dir)
+    set_line(2,'importiert.')
+    time.sleep(2)
+    set_line(2,' ')
+        
 def load_profile(name):
     global profile
     if name is None:
         profile = None
         return
-    profile = {'name':name,'notes':{}}
-    
+    profile = {'name':name,'notes':{}}    
     file = open(name,'r')
     for line in file:
+        line=line.strip()
+        print('>'+line+'<')
+        if not line:
+            print('skipping empty line')
+            continue
         data = line.split(" ",2)        
-        wave = data.pop().strip()
+        wave = data.pop()
         note = int(data.pop())
         channel = int(data.pop())
         if channel in profile['notes']:
@@ -103,6 +138,18 @@ def load_profile(name):
     file.close()
     clear()
     set_line(2,'Profil geladen.')
+    
+def management():
+    global profile
+    selection = select_from('Verwaltung',['Profil löschen','Wave-Import','Stick auswerfen'])
+    if selection == 'Profil löschen':
+        delete_profile()
+        return
+    if selection == 'Wave-Import':
+        import_wave()
+        return
+    if selection == 'Stick auswerfen':
+        unmount()
     
 def playing(filename):
     set_line(2,filename)
@@ -139,6 +186,13 @@ def read_name(title):
             title = name
             selection = select_from(title,['abcdefghijklmn','opqrstuvwxyzäö','ü-_0123456789'])
             
+def ready():
+    global profile
+    if profile is not None:
+        set_line(1,profile['name'])
+    flush()
+    set_line(4,"    Bereit.");
+
 def save_profile():
     global profile    
     if profile is None:
@@ -190,6 +244,7 @@ def select_profile():
         clear()
         set_line(1,'Keine Profile')
         set_line(2,'gefunden!')
+        time.sleep(1)
         return
     profiles.sort()
     return select_from('Profil wählen:',profiles)    
@@ -200,6 +255,8 @@ def select_wave():
     if profile is None:
         name = select_profile()
         load_profile(name)
+    if profile is None:
+        return None
 
     waves = glob.glob("*.wav")
     if (len(waves) == 0):
@@ -211,35 +268,23 @@ def select_wave():
     
     waves.sort()
     return select_from('WAV-Datei wählen:',waves)
-
-def filter_waves(entries):
-    result=[]
-    for entry in entries:
-        if os.path.isdir(entry) or (entry[-4:]=='.wav'):
-            result.append(entry)
-    return result
-            
-def import_wave():
+             
+def unmount():
     profile_dir = os.getcwd()
-    print('currently in '+profile_dir)
-    os.chdir('/media/pi')
-    selection = None;
-    while True:
-        entries = glob.glob('*')
-        entries = filter_waves(entries)
-        selection = select_from('Quelle wählen:',entries)
-        if selection[-4:]=='.wav':
-            break
-        os.chdir(selection)
-    source_dir = os.getcwd()
-    os.chdir(profile_dir)
-    clear()
+    dir='/media/pi';
+    os.chdir(dir)
+    entries = glob.glob('*')
+    entries.remove('berryboot')
+    selection = select_from('Stick wählen:',entries)
+    dir = dir+'/'+selection
+    os.system('sync')
+    os.system('umount '+dir)
+    os.chdir(profile_dir)    
     set_line(1,selection)
-    set_line(2,'wird kopiert...')
-    copy(source_dir+'/'+selection,profile_dir)
-    set_line(2,'importiert.')
-    time.sleep(2)
-    
+    set_line(2,'ausgehängt.')
+    set_line(3,'Stick kann nun')
+    set_line(4,'entfernt werden.')
+    time.sleep(2)    
 
 def welcome():
     clear()
@@ -253,7 +298,6 @@ def welcome():
     
 def write_profile(name):
     file = open(name,'a')
-    file.write('test')
     file.close()
     clear()
     set_line(1,name)
