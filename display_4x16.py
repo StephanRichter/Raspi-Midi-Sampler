@@ -163,7 +163,7 @@ def goto(line,column):
         move(L2R,L,column-1)
     
         
-def line(num,txt):
+def set_line(num,txt):
     global line1,line2,line3,line4
     txt = txt.ljust(16," ")[:16]
     goto(num,1)
@@ -172,7 +172,7 @@ def line(num,txt):
 if __name__ == '__main__':
     gpio_init();
     lcd_init(TWO_LINE,EIGHT_DOTS,FOUR_BIT_INTER,L2R,SHIFT,UNDERLINE,DISABLED)
-    line(1,"If you can see")
-    line(2,"this, your setup")
-    line(3,"seems to be ok!")
-    line(4,"      -- Stephan");
+    set_line(1,"If you can see")
+    set_line(2,"this, your setup")
+    set_line(3,"seems to be ok!")
+    set_line(4,"      -- Stephan");

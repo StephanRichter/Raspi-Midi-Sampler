@@ -11,23 +11,23 @@ ENTER = chr(0)
 def ready():
     global profile
     if profile is not None:
-        line(1,profile['name'])
+        set_line(1,profile['name'])
     flush()
-    line(4,"    Bereit.");
+    set_line(4,"    Bereit.");
     
 def assign(wave):
     global profile
     clear()    
-    line(1,"Note spielen, um")
-    line(2,wave)
-    line(3,"zuzuweisen")
+    set_line(1,"Note spielen, um")
+    set_line(2,wave)
+    set_line(3,"zuzuweisen")
     flush()
     note,channel = read_note()
     clear()
-    line(1,profile['name'])
-    line(2,wave)
-    line(3,"zugewiesen zu:")
-    line(4,"Note "+str(note)+" / Ch "+str(channel))
+    set_line(1,profile['name'])
+    set_line(2,wave)
+    set_line(3,"zugewiesen zu:")
+    set_line(4,"Note "+str(note)+" / Ch "+str(channel))
     if channel in profile['notes']:
         profile['notes'][channel][note]=wave            
     else:
@@ -35,7 +35,7 @@ def assign(wave):
     save_profile()
     time.sleep(2)
     clear()
-    line(1,profile['name'])
+    set_line(1,profile['name'])
  
 def create_profile():
     name = read_name("Name für Profil:")
@@ -52,22 +52,22 @@ def delete_profile():
         return
     selection = select_from(profile['name']+"...",['...behalten','...behalten','löschen'])
     clear()
-    line(1,profile['name'])
+    set_line(1,profile['name'])
     if selection == 'löschen':
         os.remove(profile['name'])        
-        line(2,'gelöscht!')
+        set_line(2,'gelöscht!')
         profile = None
     else:
-        line(2,'nicht gelöscht.')        
+        set_line(2,'nicht gelöscht.')        
     
 def enter_program():
     clear()
-    line(1,"Programmiermodus")
-    line(2,"1. Note blättert")
-    line(3,"2. Note wählt")
-    line(4,"Start mit Note.")
+    set_line(1,"Programmiermodus")
+    set_line(2,"1. Note blättert")
+    set_line(3,"2. Note wählt")
+    set_line(4,"Start mit Note.")
     scroll,channel = read_note()
-    selection = select_from('Programmiermodus',['Profil laden','Neues Profil','Profil ändern','Profil löschen','Abbrechen'])
+    selection = select_from('Programmiermodus',['Profil laden','Neues Profil','Profil ändern','Profil löschen','Wave importieren','Abbrechen'])
     if selection == 'Profil laden':
         name = select_profile()
         if name is not None:
@@ -79,22 +79,34 @@ def enter_program():
     if selection == 'Profil ändern':
         wav = select_wave()
         if wav is not None:
-            assign(wav)    
-        
+            assign(wav)
+    if selection == 'Wave importieren':
+        import_wave()
 def load_profile(name):
     global profile
     if name is None:
         profile = None
         return
     profile = {'name':name,'notes':{}}
+    
+    file = open(name,'r')
+    for line in file:
+        data = line.split(" ",2)        
+        wave = data.pop().strip()
+        note = int(data.pop())
+        channel = int(data.pop())
+        if channel in profile['notes']:
+            profile['notes'][channel][note]=wave
+        else:
+            profile['notes'][channel]={note:wave}
+    file.close()
     clear()
-    line(1,'Profil geladen:')
-    line(2,profile['name'])
+    set_line(2,'Profil geladen.')
     
 def playing(filename):
-    line(2,filename)
-    line(3,'wird gespielt')
-    line(4,' ')
+    set_line(2,filename)
+    set_line(3,'wird gespielt')
+    set_line(4,' ')
     
 def play_wav(filename):
     _thread.start_new_thread(playing,(filename,))
@@ -125,6 +137,7 @@ def read_name(title):
             name = name+selection
             title = name
             selection = select_from(title,['abcdefghijklmn','opqrstuvwxyzäö','ü-_0123456789'])
+            
 def save_profile():
     global profile    
     if profile is None:
@@ -142,10 +155,10 @@ def select_from(title,names):
     selection = 1
     offset = 0
     clear()
-    line(1,title)
+    set_line(1,title)
     for i in range(3):
         if (i+offset<count):
-            line(i+2," "+names[i+offset])
+            set_line(i+2," "+names[i+offset])
     scroll,channel = read_note()
     goto(selection+1,1)
     letter('~')
@@ -159,12 +172,12 @@ def select_from(title,names):
             offset = 0
             for i in range(3):
                 if (i+offset<count):
-                    line(i+2," "+names[i+offset])
+                    set_line(i+2," "+names[i+offset])
         if selection > offset+3:
             offset = offset+1
             for i in range(3):
                 if (i+offset<count):
-                    line(i+2," "+names[i+offset])
+                    set_line(i+2," "+names[i+offset])
         goto(selection-offset+1,1)
         letter('~')
         note,channel = read_note()
@@ -174,8 +187,8 @@ def select_profile():
     profiles = glob.glob("*.prf")
     if (len(profiles) == 0):
         clear()
-        line(1,'Keine Profile')
-        line(2,'gefunden!')
+        set_line(1,'Keine Profile')
+        set_line(2,'gefunden!')
         return
     profiles.sort()
     return select_from('Profil wählen:',profiles)    
@@ -189,9 +202,9 @@ def select_wave():
 
     waves = glob.glob("*.wav")
     if (len(waves) == 0):
-        line(1,"Keine Wave-Datei")
-        line(2,"gefunden. Aktion")
-        line(3,"abgebrochen...")
+        set_line(1,"Keine Wave-Datei")
+        set_line(2,"gefunden. Aktion")
+        set_line(3,"abgebrochen...")
         time.sleep(3)
         return None
     
@@ -200,23 +213,21 @@ def select_wave():
 
 def welcome():
     clear()
-    line(1,"   Willkommen!");
-    line(2,"");
-    line(3," Raspberry Midi")
-    line(4,"Sampler v. "+VERSION)
+    set_line(1,"   Willkommen!");
+    set_line(2,"");
+    set_line(3," Raspberry Midi")
+    set_line(4,"Sampler v. "+VERSION)
     time.sleep(2)
-    clear()
-    line(1,"Knopf drücken um")
-    line(2,"zu Programmieren")
-    line(4,"Initialisiere...")
+    set_line(3,' ')
+    set_line(4,"Initialisiere...")
     
 def write_profile(name):
     file = open(name,'a')
     file.write('test')
     file.close()
     clear()
-    line(1,name)
-    line(2,'erzeugt.')
+    set_line(1,name)
+    set_line(2,'erzeugt.')
     
 if __name__ == '__main__':
     os.chdir('profiles')
@@ -227,7 +238,7 @@ if __name__ == '__main__':
     midi = midi_init()
     ready()
     while True:        
-        if GPIO.input(BUTTON) == H:
+        if (GPIO.input(BUTTON) == H) or (profile is None):
             enter_program()            
             ready()
         msg = midi.poll()
