@@ -4,7 +4,7 @@ from midi_tools import *
 import os
 from shutil import copy
 
-VERSION = "0.1"
+VERSION = "0.17"
 profile = None
 ARR = chr(127)
 ENTER = chr(0)
@@ -85,6 +85,7 @@ def enter_program():
     if selection == 'Verwaltung':
         management()
         return
+    clear()
     
 def filter_waves(entries):
     result=[]
@@ -348,5 +349,4 @@ if __name__ == '__main__':
                 note = msg.note
                 if (profile is not None) and (channel in profile['notes']) and (note in profile['notes'][channel]):
                     play_wav(profile['notes'][channel][note])
-                    clear()
-                    ready()
+                    flush()
