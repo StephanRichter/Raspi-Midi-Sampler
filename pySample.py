@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 from display_4x16 import *
 from midi_tools import *
-import os,_thread
+import os
 from shutil import copy
 
 VERSION = "0.1"
@@ -159,15 +159,8 @@ def management():
     if selection == 'Stick auswerfen':
         unmount()
     
-def playing(filename):
-    set_line(2,filename)
-    set_line(3,'wird gespielt')
-    set_line(4,' ')
-    
 def play_wav(filename):
-    _thread.start_new_thread(playing,(filename,))
     os.system('aplay '+filename)
-    clear()
     
 def read_name(title):    
     selection = select_from(title,['abcdefghijklmn','opqrstuvwxyzäö','ü-_0123456789'])
@@ -345,6 +338,7 @@ if __name__ == '__main__':
     ready()
     while True:        
         if (GPIO.input(BUTTON) == H) or (profile is None):
+#            lcd_init(TWO_LINE,EIGHT_DOTS,FOUR_BIT_INTER,L2R,SHIFT,UNDERLINE,DISABLED)
             enter_program()            
             ready()
         msg = midi.poll()
