@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import mido # sudo apt-get install python3-mido python3-rtmidi
+import glob,os,time
 
 MIDI_NAME = "VIEWCON.. MIDI 1"
 
@@ -33,6 +34,35 @@ def read_note():
         note = msg.note
         chan = msg.channel
     return (note, chan)
+
+if __name__ == '__main__':
+    midi_init()
+    while True:
+        print(read_note())
+    
+def reset_usb(vendor):
+    files = glob.glob("/sys/bus/usb/devices/*/idVendor")
+    midi = None
+    for filename in files:
+        file = open(filename,'r')
+        vend = file.readline().strip()
+        file.close()
+        if vend == vendor:
+            midi = filename[:-8]+'authorized'
+            break
+    os.system("sudo bash -c 'echo 0 > "+midi+"'")
+    time.sleep(2)
+    files = glob.glob("/sys/bus/usb/devices/*/idVendor")
+    midi = None
+    for filename in files:
+        file = open(filename,'r')
+        vendor = file.readline().strip()
+        file.close()
+        if vendor == '0a92':
+            midi = filename[:-8]+'authorized'
+            break
+    os.system("sudo bash -c 'echo 1 > "+midi+"'")
+    time.sleep(1)
 
 if __name__ == '__main__':
     midi_init()
