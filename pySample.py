@@ -91,6 +91,7 @@ def filter_waves(entries):
     for entry in entries:
         if os.path.isdir(entry) or (entry[-4:]=='.wav'):
             result.append(entry)
+    result.sort()
     return result
     
 def import_wave():
@@ -100,10 +101,19 @@ def import_wave():
     while True:
         entries = glob.glob('*')
         entries = filter_waves(entries)
+        if os.getcwd() == '/media':
+            entries.append('abbrechen')
+        else:
+            entries.append('..')
+
         selection = select_from('Quelle wählen:',entries)
+        if selection == 'abbrechen':
+            os.chdir(profile_dir)
+            return
         if selection[-4:]=='.wav':
             break
         os.chdir(selection)
+        print(os.getcwd())
     source_dir = os.getcwd()
     os.chdir(profile_dir)
     clear()

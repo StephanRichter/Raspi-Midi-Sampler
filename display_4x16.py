@@ -59,7 +59,7 @@ line4 = ""
 
 def push4(rs,d4,d5,d6,d7):
     GPIO.output(LCD_RS,rs);
-    #time.sleep(PAUSE1)
+    time.sleep(PAUSE1)
     GPIO.output(LCD_E,H)
     time.sleep(PAUSE1)
     GPIO.output(LCD_DATA4,d4)
