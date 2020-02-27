@@ -4,28 +4,45 @@ from midi_tools import *
 import os
 from shutil import copy
 
-VERSION = "1.2"
+VERSION = "1.3"
 profile = None
 ARR = chr(127)
 ENTER = chr(0)
  
 def assign(wave):
     global profile
-    clear()    
+    
+def assign_wave():
+    global profile
+    if profile is None:
+        select_profile()
+        
+    if profile is None:
+        return None
+    
+    selection = select_wave()
+    if selection == 'Abbrechen':
+        set_line(1,profile['name'])
+        set_line(2,'nicht geändert')
+        set_line(3,' ')
+        time.sleep(2)
+        return
+    
     set_line(1,"Note spielen, um")
-    set_line(2,wave)
+    set_line(2,selection)
     set_line(3,"zuzuweisen")
+    set_line(4,' ')
     flush()
     note,channel = read_note()
     clear()
     set_line(1,profile['name'])
-    set_line(2,wave)
+    set_line(2,selection)
     set_line(3,"zugewiesen zu:")
     set_line(4,"Note "+str(note)+" / Ch "+str(channel))
     if channel in profile['notes']:
-        profile['notes'][channel][note]=wave            
+        profile['notes'][channel][note]=selection            
     else:
-        profile['notes'][channel]={note:wave}
+        profile['notes'][channel]={note:selection}
     save_profile()
     time.sleep(2)
     clear()
@@ -61,7 +78,19 @@ def delete_profile():
         set_line(2,'gelöscht!')
         profile = None
     else:
-        set_line(2,'nicht gelöscht.')        
+        set_line(2,'nicht gelöscht.')
+        
+def delete_wave():
+    wave = select_wave()
+    selection = select_from(wave+"...",['...behalten','...behalten','löschen'])
+    set_line(3,' ')
+    if selection == 'löschen':
+        os.remove(wave)        
+        set_line(2,'gelöscht!')
+        profile = None
+    else:
+        set_line(2,'nicht gelöscht.')
+    time.sleep(1)
     
 def enter_program():
     clear()
@@ -75,7 +104,7 @@ def enter_program():
         select_profile()
         return
     if selection == 'Profil ändern':
-        select_wave()
+        wave = assign_wave()
         return
     if selection == 'Neues Profil':
         create_profile()
@@ -148,15 +177,15 @@ def load_profile(name):
     
 def management():
     global profile
-    selection = select_from('Verwaltung',['Profil löschen','Wave-Import','Stick auswerfen'])
-    if selection == 'Profil löschen':
-        delete_profile()
-        return
+    selection = select_from('Verwaltung',['Wave-Import','Stick auswerfen','Profil löschen','Wave löschen'])
     if selection == 'Wave-Import':
         import_wave()
-        return
+    if selection == 'Profil löschen':
+        delete_profile()
     if selection == 'Stick auswerfen':
         unmount()
+    if selection == 'Wave löschen':
+        delete_wave()
     
 def play_wav(filename):
     os.system('aplay '+filename)
@@ -270,12 +299,6 @@ def select_profile():
     
     
 def select_wave():
-    global profile
-    if profile is None:
-        select_profile()
-        
-    if profile is None:
-        return None
 
     waves = glob.glob("*.wav")
     if (len(waves) == 0):
@@ -287,17 +310,7 @@ def select_wave():
     
     waves = sorted(waves,key=str.casefold)
     waves.append('Abbrechen')
-    selection = select_from('WAV-Datei wählen:',waves)
-    if selection is None:
-        return    
-    if selection == 'Abbrechen':
-        set_line(1,profile['name'])
-        set_line(2,'nicht geändert')
-        set_line(3,' ')
-        time.sleep(2)
-        return        
-    assign(selection)
-    
+    return select_from('WAV-Datei wählen:',waves)    
              
 def unmount():
     list = open('/proc/mounts','r')
