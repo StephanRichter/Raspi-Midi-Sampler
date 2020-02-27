@@ -4,7 +4,7 @@ from midi_tools import *
 import os
 from shutil import copy
 
-VERSION = "0.17"
+VERSION = "1.1"
 profile = None
 ARR = chr(127)
 ENTER = chr(0)
@@ -33,14 +33,16 @@ def assign(wave):
  
 def create_profile():
     name = read_name("Name für Profil:")
-    if name is not None:
-        name = name+'.prf'
-        file = open(name,'a')
-        file.close()
+    if name is None:
         clear()
-        set_line(1,name)
-        set_line(2,'erzeugt.')
-        load_profile(name)
+        return
+    name = name+'.prf'
+    file = open(name,'a')
+    file.close()
+    clear()
+    set_line(1,name)
+    set_line(2,'erzeugt.')
+    load_profile(name)
             
 def delete_profile():
     global profile
@@ -163,30 +165,43 @@ def management():
 def play_wav(filename):
     os.system('aplay '+filename)
     
-def read_name(title):    
-    selection = select_from(title,['abcdefghijklmn','opqrstuvwxyzäö','ü-_0123456789'])
+def read_name(title):
     name = ""
+    selection = select_from(title,['a-z','äöu / -_ / 0-9','abbrechen'])
     while True:
+        third = 'abbrechen'
+        if len(name)>0:
+            third = 'Optionen'
+        
+        if selection == 'a-z':
+            selection = select_from(title,['abcdefghijklm','nopqrstuvwxyz',third])
+        if selection == 'äöu / -_ / 0-9':
+            selection = select_from(title,['0123456789','äöü-_',third])
+        if selection == 'Optionen':
+            selection = select_from(title,['Zeichen löschen','übernehmen',third])
+        if selection == 'abbrechen':
+            return None
+        if selection == 'übernehmen':
+            return name
+        if selection == 'Zeichen löschen':
+            name = name[:-1]
+            title = name
+            if len(name)==0:
+                third = 'abbrechen'
+            selection = select_from(title,['a-z','äöu / -_ / 0-9',third])
+            continue
+        
         l = len(selection)
         if l>1:
             l=l//2
-            if len(name)>0:                
-                selection = select_from(title,[selection[0:l],selection[l:],ARR+'/'+ENTER])
-            else:
-                selection = select_from(title,[selection[0:l],selection[l:]])
-                
-            if selection == ARR+'/'+ENTER:
-                selection = select_from(title,['übernehmen','rückgängig'])
-            if selection == 'übernehmen':
-                return name
-            if selection == 'rückgängig':
-                name = name[:-1]
-                title = name
-                selection = select_from(title,['abcdefghijklmn','opqrstuvwxyzäö','ü-_0123456789'])
-        else:
-            name = name+selection
-            title = name
-            selection = select_from(title,['abcdefghijklmn','opqrstuvwxyzäö','ü-_0123456789'])
+            selection = select_from(title,[selection[0:l],selection[l:],third])
+            continue
+
+        name = name+selection
+        title = name
+        if len(name)>0:
+            third = 'Optionen'
+        selection = select_from(title,['a-z','äöu / -_ / 0-9',third])
             
 def ready():
     global profile
