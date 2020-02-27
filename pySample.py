@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 from display_4x16 import *
 from midi_tools import *
-import os
+import os,_thread
 from shutil import copy
 
-VERSION = "1.3"
+VERSION = "1.5"
 profile = None
 ARR = chr(127)
 ENTER = chr(0)
@@ -47,6 +47,35 @@ def assign_wave():
     time.sleep(2)
     clear()
     set_line(1,profile['name'])
+    
+def clear_note():
+    global profile
+    if profile is None:
+        clear()
+        set_line(1,'Kein Profil')
+        set_line(2,'aktiv!')
+        time.sleep(2)
+        return
+    set_line(1,"Note spielen, um")
+    set_line(2,'Zuweisung aufzu-')
+    set_line(3,"heben")
+    set_line(4,' ')
+    flush()
+    note,channel = read_note()
+    if (channel in profile['notes']) and (note in profile['notes'][channel]):
+        old = profile['notes'][channel][note]
+        profile['notes'][channel].pop(note)
+        save_profile()
+        set_line(1,'Verknüpfung mit')
+        set_line(2,old)
+        set_line(3,'aufgehoben')
+    else:
+        set_line(1,'Note ist nicht')
+        set_line(2,'mit einer Wave-')
+        set_line(3,'Datei verknüpft.')
+    time.sleep(3)
+    clear()
+
  
 def create_profile():
     name = read_name("Name für Profil:")
@@ -99,11 +128,14 @@ def enter_program():
     set_line(3,"2. Note wählt")
     set_line(4,"Start mit Note.")
     scroll,channel = read_note()
-    selection = select_from('Programmiermodus',['Profil laden','Profil ändern','Neues Profil','Verwaltung','Abbrechen'])
+    selection = select_from('Programmiermodus',['Profil laden','Note verknüpfen','Note freigeben','Neues Profil','Verwaltung','Abbrechen'])
     if selection == 'Profil laden':
         select_profile()
         return
-    if selection == 'Profil ändern':
+    if selection == 'Note freigeben':
+        clear_note()
+        return
+    if selection == 'Note verknüpfen':
         wave = assign_wave()
         return
     if selection == 'Neues Profil':
@@ -151,7 +183,10 @@ def import_wave():
     set_line(2,'importiert.')
     time.sleep(2)
     set_line(2,' ')
-        
+    
+def killswitch(channel):
+    os.system('killall aplay')
+            
 def load_profile(name):
     global profile
     if name is None:
@@ -185,10 +220,12 @@ def management():
     if selection == 'Stick auswerfen':
         unmount()
     if selection == 'Wave löschen':
-        delete_wave()
+        delete_wave() 
     
 def play_wav(filename):
+    GPIO.add_event_detect(BUTTON,GPIO.FALLING,callback=killswitch)
     os.system('aplay '+filename)
+    GPIO.remove_event_detect(BUTTON)
     
 def read_name(title):
     name = ""
