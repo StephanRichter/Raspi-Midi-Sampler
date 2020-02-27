@@ -4,7 +4,7 @@ from midi_tools import *
 import os
 from shutil import copy
 
-VERSION = "1.1"
+VERSION = "1.2"
 profile = None
 ARR = chr(127)
 ENTER = chr(0)
@@ -46,13 +46,13 @@ def create_profile():
             
 def delete_profile():
     global profile
-    name = None
     if profile is None:
-        name = select_profile()
-    else:
-        name = profile['name']
-    if name is None: # es wurde kein Profil geladen
+        select_profile()
+        
+    if profile is None: # es wurde kein Profil geladen
         return
+
+    name = profile['name']
     selection = select_from(name+"...",['...behalten','...behalten','löschen'])
     clear()
     set_line(1,name)
@@ -72,14 +72,10 @@ def enter_program():
     scroll,channel = read_note()
     selection = select_from('Programmiermodus',['Profil laden','Profil ändern','Neues Profil','Verwaltung','Abbrechen'])
     if selection == 'Profil laden':
-        name = select_profile()
-        if name is not None:
-            load_profile(name)
+        select_profile()
         return
     if selection == 'Profil ändern':
-        wav = select_wave()
-        if wav is not None:
-            assign(wav)
+        select_wave()
         return
     if selection == 'Neues Profil':
         create_profile()
@@ -174,11 +170,11 @@ def read_name(title):
             third = 'Optionen'
         
         if selection == 'a-z':
-            selection = select_from(title,['abcdefghijklm','nopqrstuvwxyz',third])
+            selection = select_from(title,['abcdefgh','ijklmnop','qrstuvwxyz',third])
         if selection == 'äöu / -_ / 0-9':
             selection = select_from(title,['0123456789','äöü-_',third])
         if selection == 'Optionen':
-            selection = select_from(title,['Zeichen löschen','übernehmen',third])
+            selection = select_from(title,['Zeichen löschen','übernehmen','abbrechen'])
         if selection == 'abbrechen':
             return None
         if selection == 'übernehmen':
@@ -264,14 +260,20 @@ def select_profile():
         time.sleep(1)
         return
     profiles.sort()
-    return select_from('Profil wählen:',profiles)    
+    profiles.append('abbrechen')
+    name = select_from('Profil wählen:',profiles)
+    if name is None:
+        return
+    if name == 'abbrechen':
+        return
+    load_profile(name)
+    
     
 def select_wave():
     global profile
-    clear()
     if profile is None:
-        name = select_profile()
-        load_profile(name)
+        select_profile()
+        
     if profile is None:
         return None
 
@@ -283,8 +285,19 @@ def select_wave():
         time.sleep(3)
         return None
     
-    waves.sort()
-    return select_from('WAV-Datei wählen:',waves)
+    waves = sorted(waves,key=str.casefold)
+    waves.append('Abbrechen')
+    selection = select_from('WAV-Datei wählen:',waves)
+    if selection is None:
+        return    
+    if selection == 'Abbrechen':
+        set_line(1,profile['name'])
+        set_line(2,'nicht geändert')
+        set_line(3,' ')
+        time.sleep(2)
+        return        
+    assign(selection)
+    
              
 def unmount():
     list = open('/proc/mounts','r')
