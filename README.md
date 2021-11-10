@@ -4,5 +4,5 @@
 |--------|-------|
 |A german description of this project can be found here:|Eine Beschreibung des Projektes gibt es hier:|
 
-https://keawe.de/raspi-midi-sampler
+https://srsoftware.de/raspi-midi-sampler
 
